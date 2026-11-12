@@ -85,11 +85,22 @@ const notifySkillDiagnostics = (ui: UI | undefined, diagnostics: SkillDiagnostic
 	);
 };
 
-const openPicker = async (ctx: ExtensionContext): Promise<void> => {
-	if (pickerOpen) return;
-	pickerOpen = true;
-	try {
-	const ui = ctx.ui;
+// The picker's result: the full working set on Enter, undefined on Esc.
+type PickerResult = string[] | undefined;
+
+// The overlay factory is named and typed so `ui.custom` infers its result
+// from `done`; an inline generic call made lizard misread the function bounds
+// and fail its 100-line limit, so keep this out of `runPicker`.
+const createPickerOverlay = (
+	_tui: unknown,
+	theme: Theme,
+	_kb: unknown,
+	done: (result: PickerResult) => void,
+): SkillPickerComponent => new SkillPickerComponent(skillIndex, queue.list(), theme, done);
+
+// The picker works on a copy of the current queue; Enter writes the whole
+// working set back atomically (stateful re-open), Esc leaves it untouched.
+const runPicker = async (ui: UI | undefined): Promise<void> => {
 	if (!ui?.custom) {
 		ui?.notify?.("pi-skills picker unavailable in this mode", "warning");
 		return;
@@ -98,13 +109,7 @@ const openPicker = async (ctx: ExtensionContext): Promise<void> => {
 		ui.notify("No skills discovered", "warning");
 		return;
 	}
-	// The picker works on a copy of the current queue; Enter writes the whole
-	// working set back atomically (stateful re-open), Esc leaves it untouched.
-	const result = await ui.custom<string[] | undefined>(
-		(_tui, theme: Theme, _kb, done) =>
-			new SkillPickerComponent(skillIndex, queue.list(), theme, done),
-		{ overlay: true },
-	);
+	const result: PickerResult = await ui.custom(createPickerOverlay, { overlay: true });
 	if (!result) return;
 
 	queue.replace(result);
@@ -113,6 +118,14 @@ const openPicker = async (ctx: ExtensionContext): Promise<void> => {
 		result.length > 0 ? `Attached ${result.length} skill(s)` : "Skill queue cleared",
 		"info",
 	);
+};
+
+// Drops overlapping triggers so only one picker overlay runs at a time.
+const openPicker = async (ctx: ExtensionContext): Promise<void> => {
+	if (pickerOpen) return;
+	pickerOpen = true;
+	try {
+		await runPicker(ctx.ui);
 	} finally {
 		pickerOpen = false;
 	}
