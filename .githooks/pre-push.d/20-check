@@ -1,0 +1,51 @@
+#!/bin/sh
+# Runs the type check, the tests and the dependency checks on each pushed
+# commit. The repository has no hosted CI, so this hook is the only place that
+# proves a commit before it reaches origin.
+set -eu
+
+# Lowest npm advisory severity that blocks a push; matches the shared template.
+AUDIT_LEVEL=high
+
+checks() {
+	npm run --silent typecheck || return 1
+	npm test || return 1
+	# The lockfile must describe a complete, consistent dependency tree.
+	npm ls --all --package-lock-only >/dev/null || return 1
+	# Dependency gates: known high or critical advisories, and registry
+	# signatures plus provenance of every installed package.
+	npm audit --audit-level="$AUDIT_LEVEL" || return 1
+	npm audit signatures || return 1
+}
+
+# Helpers (staged_git, pushed_shas, at_sha, darwin_only) from .githooks/lib.
+# shellcheck source=/dev/null
+. "${HOOK_HELPERS:?run from .githooks (scripts/setup-hooks)}"
+
+top=$(git rev-parse --show-toplevel)
+# A temporary worktree has no dependencies: install them from that commit's
+# lockfile (never resolved; lifecycle scripts stay off). In place, the clone's
+# install is used.
+install_deps() {
+	[ "$(pwd -P)" != "$(CDPATH='' cd -- "$top" && pwd -P)" ] || return 0
+	# Fail closed: without the lockfile the install would resolve fresh versions.
+	[ -f package-lock.json ] || { echo "pre-push: package-lock.json missing" >&2; return 1; }
+	npm ci --ignore-scripts --no-audit --no-fund >/dev/null || return 1
+}
+
+# at_sha runs this with set -e off, so every step returns on failure.
+run_at() {
+	install_deps || return 1
+	checks || return 1
+}
+
+# Each pushed commit must pass on its own, not only the tip. A for loop, never
+# `| while`, so a failure blocks the push.
+shas=$(pushed_shas <"$HOOK_STDIN_FILE") || exit 1
+for pp_commit in $shas; do
+	echo "pre-push: $(basename -- "$0"): checking $pp_commit" >&2
+	if ! at_sha "$pp_commit" run_at; then
+		echo "pre-push: $(basename -- "$0"): checks failed for $pp_commit" >&2
+		exit 1
+	fi
+done
