@@ -19,7 +19,10 @@ export type SkillSnapshot = { blocks: string[]; names: string[] };
  * the skills adjacent to the prompt they augment — mirroring `/skill:name`.
  * Returns a new array; the original is untouched.
  */
-export const injectSkills = (messages: readonly AgentMessage[], blocks: readonly string[]): AgentMessage[] => {
+export const injectSkills = (
+	messages: readonly AgentMessage[],
+	blocks: readonly string[],
+): AgentMessage[] => {
 	const skillMessage: AgentMessage = {
 		role: "user",
 		content: blocks.join("\n\n"),

@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+# Runs Biome (format and lint) on the exact staged snapshot so partial staging
+# cannot hide a formatting or lint defect. Uses the pinned local Biome binary
+# and fails closed when it is missing.
+set -euo pipefail
+
+# shellcheck source=.githooks/lib/helpers.sh
+. "${HOOK_HELPERS:?run from .githooks (scripts/setup-hooks)}"
+
+readonly CHECK_TIMEOUT_SECONDS=60
+readonly SCRATCH_PREFIX=pi-skills-biome
+
+root=$(git rev-parse --show-toplevel)
+biome="$root/node_modules/.bin/biome"
+[[ -x "$biome" ]] || {
+	echo "pre-commit: local Biome is missing; run npm ci --ignore-scripts" >&2
+	exit 1
+}
+
+staged=$(staged_git diff --cached --name-only --diff-filter=ACMR) || exit 1
+[[ -n "$staged" ]] || exit 0
+
+scratch=$(mktemp -d "${TMPDIR:-/tmp}/$SCRATCH_PREFIX.XXXXXX")
+cleanup() {
+	# Only this run's temporary directory is removed.
+	if [[ -d "$scratch" && "${scratch##*/}" == "$SCRATCH_PREFIX".* ]]; then
+		rm -r -- "$scratch"
+	fi
+}
+trap cleanup EXIT
+
+staged_git diff --cached --name-only --diff-filter=ACMR -z >"$scratch/staged"
+
+# Reject staged symlinks so Biome cannot read files outside the staged copy.
+staged_git ls-files --stage >"$scratch/index-modes"
+if grep -q '^120000 ' "$scratch/index-modes"; then
+	echo "pre-commit: staged symlinks are not allowed" >&2
+	exit 1
+fi
+
+staged_git checkout-index --all --prefix="$scratch/tree/"
+cd "$scratch/tree"
+run_biome() {
+	xargs -0 "$biome" check --vcs-enabled=false --error-on-warnings \
+		--no-errors-on-unmatched --files-ignore-unknown=true \
+		--config-path="$scratch/tree/biome.jsonc" -- <"$scratch/staged"
+}
+run_step 'staged Biome check' "$CHECK_TIMEOUT_SECONDS" run_biome

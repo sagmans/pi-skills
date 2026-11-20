@@ -31,7 +31,11 @@ function fakeBase() {
 			return { lines, cursorLine: cl, cursorCol: cc };
 		},
 	};
-	return { provider, getSuggestionsCalls: () => getSuggestionsCalls, applyCompletionCalls: () => applyCompletionCalls };
+	return {
+		provider,
+		getSuggestionsCalls: () => getSuggestionsCalls,
+		applyCompletionCalls: () => applyCompletionCalls,
+	};
 }
 
 // --- extractSkillQuery ---
@@ -46,7 +50,10 @@ test("extractSkillQuery: $<query> returns the query and $ column", () => {
 
 test("extractSkillQuery: token inline in a line", () => {
 	// "explain $concise" — cursor at end (col 16); $ is at col 8.
-	assert.deepEqual(extractSkillQuery(["explain $concise"], 0, 16), { query: "concise", startCol: 8 });
+	assert.deepEqual(extractSkillQuery(["explain $concise"], 0, 16), {
+		query: "concise",
+		startCol: 8,
+	});
 });
 
 test("extractSkillQuery: cursor mid-token returns the partial query", () => {

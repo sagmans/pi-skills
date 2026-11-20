@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -67,7 +67,7 @@ test("buildSkillBlockFromContent matches builtin /skill:name envelope", () => {
 	const content = "---\nname: pdf\ndescription: x\n---\n\n# PDF\n\nBody line.\n";
 	// Byte-identical to Pi's _expandSkillCommand output.
 	const expected =
-		"<skill name=\"pdf\" location=\"/skills/pdf/SKILL.md\">\n" +
+		'<skill name="pdf" location="/skills/pdf/SKILL.md">\n' +
 		"References are relative to /skills/pdf.\n\n" +
 		"# PDF\n\nBody line.\n" +
 		"</skill>";
@@ -88,7 +88,11 @@ test("findSkill locates by name and is undefined when absent", () => {
 });
 
 test("resolveSkillBlocks returns empty for empty input", () => {
-	assert.deepEqual(resolveSkillBlocks([], nameIndex(["a"]), stubBlock), { blocks: [], names: [], missing: [] });
+	assert.deepEqual(resolveSkillBlocks([], nameIndex(["a"]), stubBlock), {
+		blocks: [],
+		names: [],
+		missing: [],
+	});
 });
 
 test("resolveSkillBlocks preserves queue order", () => {
@@ -130,8 +134,16 @@ test("normalizeSkillResourcePath maps package skill directories to SKILL.md", ()
 
 test("enabledSkillPaths filters disabled resources", () => {
 	const resources: ResolvedResource[] = [
-		{ path: "/enabled.md", enabled: true, metadata: { source: "test", scope: "user", origin: "top-level" } },
-		{ path: "/disabled.md", enabled: false, metadata: { source: "test", scope: "user", origin: "top-level" } },
+		{
+			path: "/enabled.md",
+			enabled: true,
+			metadata: { source: "test", scope: "user", origin: "top-level" },
+		},
+		{
+			path: "/disabled.md",
+			enabled: false,
+			metadata: { source: "test", scope: "user", origin: "top-level" },
+		},
 	];
 	assert.deepEqual(enabledSkillPaths(resources), ["/enabled.md"]);
 });
@@ -157,12 +169,20 @@ test("loadSkillIndex honors package manifests outside conventional skills/", asy
 		const agentDir = join(root, "agent");
 		const pkg = join(root, "pkg");
 		writeSkill(join(pkg, "custom", "pi-skills-manifest-test"), "pi-skills-manifest-test");
-		writeSkill(join(pkg, "skills", "pi-skills-convention-should-not-load"), "pi-skills-convention-should-not-load");
-		writeFileSync(join(pkg, "package.json"), JSON.stringify({ pi: { skills: ["custom"] } }, null, 2));
+		writeSkill(
+			join(pkg, "skills", "pi-skills-convention-should-not-load"),
+			"pi-skills-convention-should-not-load",
+		);
+		writeFileSync(
+			join(pkg, "package.json"),
+			JSON.stringify({ pi: { skills: ["custom"] } }, null, 2),
+		);
 		writeAgentSettings(agentDir, { packages: [pkg] });
 		const result = await loadSkillIndex({ cwd, agentDir, projectTrusted: true });
 		assert.ok(result.skills.some((skill) => skill.name === "pi-skills-manifest-test"));
-		assert.ok(!result.skills.some((skill) => skill.name === "pi-skills-convention-should-not-load"));
+		assert.ok(
+			!result.skills.some((skill) => skill.name === "pi-skills-convention-should-not-load"),
+		);
 	} finally {
 		cleanup();
 	}
@@ -174,7 +194,10 @@ test("loadSkillIndex honors package filters that disable skills", async () => {
 		const cwd = join(root, "project");
 		const agentDir = join(root, "agent");
 		const pkg = join(root, "pkg");
-		writeSkill(join(pkg, "skills", "pi-skills-disabled-package-test"), "pi-skills-disabled-package-test");
+		writeSkill(
+			join(pkg, "skills", "pi-skills-disabled-package-test"),
+			"pi-skills-disabled-package-test",
+		);
 		writeAgentSettings(agentDir, { packages: [{ source: pkg, skills: [] }] });
 		const result = await loadSkillIndex({ cwd, agentDir, projectTrusted: true });
 		assert.ok(!result.skills.some((skill) => skill.name === "pi-skills-disabled-package-test"));
@@ -194,7 +217,10 @@ test("loadSkillIndex skips missing project packages without losing default skill
 			join(cwd, ".pi", "settings.json"),
 			JSON.stringify({ packages: ["npm:pi-skills-definitely-missing-package"] }, null, 2),
 		);
-		writeSkill(join(agentDir, "skills", "pi-skills-default-survives-test"), "pi-skills-default-survives-test");
+		writeSkill(
+			join(agentDir, "skills", "pi-skills-default-survives-test"),
+			"pi-skills-default-survives-test",
+		);
 		const result = await loadSkillIndex({ cwd, agentDir, projectTrusted: true });
 		assert.ok(result.skills.some((skill) => skill.name === "pi-skills-default-survives-test"));
 	} finally {
@@ -208,7 +234,10 @@ test("loadSkillIndex ignores malformed package entries without losing default sk
 		const cwd = join(root, "project");
 		const agentDir = join(root, "agent");
 		writeAgentSettings(agentDir, { packages: [{ skills: [] }, { source: 7 }, null] });
-		writeSkill(join(agentDir, "skills", "pi-skills-invalid-package-entry-test"), "pi-skills-invalid-package-entry-test");
+		writeSkill(
+			join(agentDir, "skills", "pi-skills-invalid-package-entry-test"),
+			"pi-skills-invalid-package-entry-test",
+		);
 		const result = await loadSkillIndex({ cwd, agentDir, projectTrusted: true });
 		assert.ok(result.skills.some((skill) => skill.name === "pi-skills-invalid-package-entry-test"));
 	} finally {
@@ -224,16 +253,27 @@ test("loadSkillIndex respects untrusted project boundary", async () => {
 		const pkg = join(root, "project-pkg");
 		writeAgentSettings(agentDir, {});
 		writeSkill(join(agentDir, "skills", "pi-skills-user-trust-test"), "pi-skills-user-trust-test");
-		writeSkill(join(cwd, ".pi", "skills", "pi-skills-project-pi-trust-test"), "pi-skills-project-pi-trust-test");
-		writeSkill(join(cwd, ".agents", "skills", "pi-skills-project-agents-trust-test"), "pi-skills-project-agents-trust-test");
-		writeSkill(join(pkg, "skills", "pi-skills-project-package-trust-test"), "pi-skills-project-package-trust-test");
+		writeSkill(
+			join(cwd, ".pi", "skills", "pi-skills-project-pi-trust-test"),
+			"pi-skills-project-pi-trust-test",
+		);
+		writeSkill(
+			join(cwd, ".agents", "skills", "pi-skills-project-agents-trust-test"),
+			"pi-skills-project-agents-trust-test",
+		);
+		writeSkill(
+			join(pkg, "skills", "pi-skills-project-package-trust-test"),
+			"pi-skills-project-package-trust-test",
+		);
 		mkdirSync(join(cwd, ".pi"), { recursive: true });
 		writeFileSync(join(cwd, ".pi", "settings.json"), JSON.stringify({ packages: [pkg] }, null, 2));
 		const result = await loadSkillIndex({ cwd, agentDir, projectTrusted: false });
 		assert.ok(result.skills.some((skill) => skill.name === "pi-skills-user-trust-test"));
 		assert.ok(!result.skills.some((skill) => skill.name === "pi-skills-project-pi-trust-test"));
 		assert.ok(!result.skills.some((skill) => skill.name === "pi-skills-project-agents-trust-test"));
-		assert.ok(!result.skills.some((skill) => skill.name === "pi-skills-project-package-trust-test"));
+		assert.ok(
+			!result.skills.some((skill) => skill.name === "pi-skills-project-package-trust-test"),
+		);
 	} finally {
 		cleanup();
 	}
@@ -245,13 +285,23 @@ test("loadSkillIndex returns diagnostics for malformed skills while keeping vali
 		const cwd = join(root, "project");
 		const agentDir = join(root, "agent");
 		writeAgentSettings(agentDir, {});
-		writeSkill(join(agentDir, "skills", "pi-skills-valid-diagnostic-test"), "pi-skills-valid-diagnostic-test");
+		writeSkill(
+			join(agentDir, "skills", "pi-skills-valid-diagnostic-test"),
+			"pi-skills-valid-diagnostic-test",
+		);
 		const badDir = join(agentDir, "skills", "pi-skills-bad-diagnostic-test");
 		mkdirSync(badDir, { recursive: true });
-		writeFileSync(join(badDir, "SKILL.md"), "---\nname: pi-skills-bad-diagnostic-test\n---\nBody.\n");
+		writeFileSync(
+			join(badDir, "SKILL.md"),
+			"---\nname: pi-skills-bad-diagnostic-test\n---\nBody.\n",
+		);
 		const result = await loadSkillIndex({ cwd, agentDir, projectTrusted: true });
 		assert.ok(result.skills.some((skill) => skill.name === "pi-skills-valid-diagnostic-test"));
-		assert.ok(result.diagnostics.some((diagnostic) => diagnostic.path?.includes("pi-skills-bad-diagnostic-test")));
+		assert.ok(
+			result.diagnostics.some((diagnostic) =>
+				diagnostic.path?.includes("pi-skills-bad-diagnostic-test"),
+			),
+		);
 	} finally {
 		cleanup();
 	}

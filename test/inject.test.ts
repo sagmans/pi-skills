@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { injectSkills, type AgentMessage } from "../src/inject.ts";
+import { type AgentMessage, injectSkills } from "../src/inject.ts";
 
 // AgentMessage is a large union; tests only exercise `role` + spread semantics,
 // so minimal stand-ins are cast into place.

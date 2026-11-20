@@ -2,11 +2,11 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import {
-	SUPPORTED_PI_MAX_EXCLUSIVE,
-	SUPPORTED_PI_MIN,
 	compareVersions,
 	isSupportedPiVersion,
 	parseVersionParts,
+	SUPPORTED_PI_MAX_EXCLUSIVE,
+	SUPPORTED_PI_MIN,
 } from "../src/compat.ts";
 
 test("parseVersionParts pads missing parts with zero", () => {

@@ -1,25 +1,38 @@
-#!/bin/sh
-# Runs the type check, the tests and the dependency checks on each pushed
+#!/usr/bin/env bash
+# Runs Biome, typecheck, tests, shell checks and dependency gates on each pushed
 # commit. The repository has no hosted CI, so this hook is the only place that
 # proves a commit before it reaches origin.
-set -eu
+set -euo pipefail
 
 # Lowest npm advisory severity that blocks a push; matches the shared template.
-AUDIT_LEVEL=high
+readonly AUDIT_LEVEL=high
+# Step bounds so a stalled package tool or test run fails instead of hanging.
+readonly INSTALL_TIMEOUT_SECONDS=300
+readonly SUITE_TIMEOUT_SECONDS=600
+readonly NETWORK_TIMEOUT_SECONDS=120
+
+for tool in npm shellcheck shfmt; do
+	command -v "$tool" >/dev/null || {
+		echo "pre-push: $tool is missing" >&2
+		exit 1
+	}
+done
 
 checks() {
-	npm run --silent typecheck || return 1
-	npm test || return 1
+	run_step 'npm lint' "$SUITE_TIMEOUT_SECONDS" npm run --silent lint || return 1
+	run_step 'npm typecheck' "$SUITE_TIMEOUT_SECONDS" npm run --silent typecheck || return 1
+	run_step 'npm test' "$SUITE_TIMEOUT_SECONDS" npm test || return 1
+	run_step 'shell lint and format' "$SUITE_TIMEOUT_SECONDS" bash scripts/lint-shell.sh || return 1
 	# The lockfile must describe a complete, consistent dependency tree.
-	npm ls --all --package-lock-only >/dev/null || return 1
+	run_step 'npm ls' "$SUITE_TIMEOUT_SECONDS" npm ls --all --package-lock-only >/dev/null || return 1
 	# Dependency gates: known high or critical advisories, and registry
 	# signatures plus provenance of every installed package.
-	npm audit --audit-level="$AUDIT_LEVEL" || return 1
-	npm audit signatures || return 1
+	run_step 'npm audit' "$NETWORK_TIMEOUT_SECONDS" npm audit --audit-level="$AUDIT_LEVEL" || return 1
+	run_step 'npm audit signatures' "$NETWORK_TIMEOUT_SECONDS" npm audit signatures || return 1
 }
 
-# Helpers (staged_git, pushed_shas, at_sha, darwin_only) from .githooks/lib.
-# shellcheck source=/dev/null
+# Helpers (staged_git, pushed_shas, at_sha, run_step, darwin_only) from .githooks/lib.
+# shellcheck source=.githooks/lib/helpers.sh
 . "${HOOK_HELPERS:?run from .githooks (scripts/setup-hooks)}"
 
 top=$(git rev-parse --show-toplevel)
@@ -27,10 +40,13 @@ top=$(git rev-parse --show-toplevel)
 # lockfile (never resolved; lifecycle scripts stay off). In place, the clone's
 # install is used.
 install_deps() {
-	[ "$(pwd -P)" != "$(CDPATH='' cd -- "$top" && pwd -P)" ] || return 0
+	[[ "$(pwd -P)" != "$(CDPATH='' cd -- "$top" && pwd -P)" ]] || return 0
 	# Fail closed: without the lockfile the install would resolve fresh versions.
-	[ -f package-lock.json ] || { echo "pre-push: package-lock.json missing" >&2; return 1; }
-	npm ci --ignore-scripts --no-audit --no-fund >/dev/null || return 1
+	[[ -f package-lock.json ]] || {
+		echo "pre-push: package-lock.json missing" >&2
+		return 1
+	}
+	run_step 'npm ci' "$INSTALL_TIMEOUT_SECONDS" npm ci --ignore-scripts --no-audit --no-fund >/dev/null || return 1
 }
 
 # at_sha runs this with set -e off, so every step returns on failure.

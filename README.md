@@ -145,8 +145,9 @@ From this directory:
 
 ```bash
 npm ci --ignore-scripts
-npm test            # node --experimental-transform-types --test test/*.test.ts
+npm run lint        # biome ci --error-on-warnings .
 npm run typecheck
+npm test            # node --experimental-transform-types --test test/*.test.ts
 ```
 
 ## License

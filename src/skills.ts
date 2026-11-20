@@ -3,13 +3,13 @@ import { join } from "node:path";
 
 import {
 	DefaultPackageManager,
-	SettingsManager,
+	getAgentDir,
 	type LoadSkillsResult,
+	loadSkills,
 	type PackageSource,
 	type ResolvedResource,
+	SettingsManager,
 	type Skill,
-	getAgentDir,
-	loadSkills,
 	stripFrontmatter,
 } from "@earendil-works/pi-coding-agent";
 

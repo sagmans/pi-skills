@@ -1,8 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-
-import { PI_SKILLS_ACTION_EVENT, PI_SKILLS_REQUESTER, startBinding } from "../src/binding.ts";
 import type { EventBus, Scheduler } from "../src/binding.ts";
+import { PI_SKILLS_ACTION_EVENT, PI_SKILLS_REQUESTER, startBinding } from "../src/binding.ts";
 
 interface FakeBus extends EventBus {
 	emitted: Array<{ event: string; payload?: unknown }>;

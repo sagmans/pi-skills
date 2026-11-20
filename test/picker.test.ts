@@ -1,16 +1,17 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { stripVTControlCharacters } from "node:util";
 
 import type { Skill } from "@earendil-works/pi-coding-agent";
 import { CURSOR_MARKER } from "@earendil-works/pi-tui";
 
 import {
-	classifyPickerKey,
 	clampCursor,
+	classifyPickerKey,
 	editQuery,
 	fuzzySkillFilter,
-	scrollWindow,
 	SkillPickerComponent,
+	scrollWindow,
 } from "../src/picker.ts";
 import { SkillQueue } from "../src/queue.ts";
 
@@ -28,7 +29,7 @@ function fakeSkill(name: string, description = "d"): Skill {
 const passthroughTheme = { fg: (_color: string, text: string) => text };
 
 const stripAnsi = (line: string): string =>
-	line.replace(/\u001b\[[0-9;]*m/gu, "").replaceAll(CURSOR_MARKER, "");
+	stripVTControlCharacters(line).replaceAll(CURSOR_MARKER, "");
 
 test("classifyPickerKey maps raw bytes to actions", () => {
 	assert.equal(classifyPickerKey("\x1b").kind, "cancel");
@@ -77,15 +78,21 @@ test("editQuery types, deletes, and moves the cursor", () => {
 test("fuzzySkillFilter returns all on empty query and narrows otherwise", () => {
 	const skills = [fakeSkill("alpha"), fakeSkill("beta"), fakeSkill("gamma")];
 	assert.equal(fuzzySkillFilter(skills, "").length, 3);
-	assert.deepEqual(fuzzySkillFilter(skills, "al").map((s) => s.name), ["alpha"]);
-	assert.deepEqual(fuzzySkillFilter(skills, "g").map((s) => s.name), ["gamma"]);
+	assert.deepEqual(
+		fuzzySkillFilter(skills, "al").map((s) => s.name),
+		["alpha"],
+	);
+	assert.deepEqual(
+		fuzzySkillFilter(skills, "g").map((s) => s.name),
+		["gamma"],
+	);
 	// "a" appears in all three (alph**a**, bet**a**, gamm**a**).
 	assert.equal(fuzzySkillFilter(skills, "a").length, 3);
 });
 
 test("component: Enter commits the current working set unchanged", () => {
 	const skills = [fakeSkill("a"), fakeSkill("b")];
-	let captured: string[] | undefined = undefined;
+	let captured: string[] | undefined;
 	const c = new SkillPickerComponent(skills, ["b"], passthroughTheme, (r) => {
 		captured = r;
 	});
@@ -95,7 +102,7 @@ test("component: Enter commits the current working set unchanged", () => {
 
 test("component: Tab toggles the focused skill then Enter commits", () => {
 	const skills = [fakeSkill("a"), fakeSkill("b"), fakeSkill("c")];
-	let captured: string[] | undefined = undefined;
+	let captured: string[] | undefined;
 	const c = new SkillPickerComponent(skills, [], passthroughTheme, (r) => {
 		captured = r;
 	});
@@ -108,7 +115,7 @@ test("component: Tab toggles the focused skill then Enter commits", () => {
 
 test("component: typing filters before toggling the focused match", () => {
 	const skills = [fakeSkill("alpha"), fakeSkill("beta"), fakeSkill("gamma")];
-	let captured: string[] | undefined = undefined;
+	let captured: string[] | undefined;
 	const c = new SkillPickerComponent(skills, [], passthroughTheme, (r) => {
 		captured = r;
 	});
@@ -131,7 +138,7 @@ test("component: Escape cancels and commits nothing", () => {
 
 test("component: pre-selected current queue survives only existing skills", () => {
 	const skills = [fakeSkill("a")];
-	let captured: string[] | undefined = undefined;
+	let captured: string[] | undefined;
 	// "ghost" is dropped because it is not in the skill list.
 	const c = new SkillPickerComponent(skills, ["a", "ghost"], passthroughTheme, (r) => {
 		captured = r;
@@ -143,7 +150,7 @@ test("component: pre-selected current queue survives only existing skills", () =
 // Sanity: SkillQueue (used as the working set) ordering is insertion-stable.
 test("component working set preserves current-queue order then appended toggles", () => {
 	const skills = [fakeSkill("a"), fakeSkill("b"), fakeSkill("c")];
-	let captured: string[] | undefined = undefined;
+	let captured: string[] | undefined;
 	const c = new SkillPickerComponent(skills, ["c"], passthroughTheme, (r) => {
 		captured = r;
 	});
@@ -160,7 +167,7 @@ test("render: every line fits the supplied terminal width", () => {
 		for (const line of c.render(width)) {
 			assert.ok(
 				stripAnsi(line).length <= width,
-				"width " + width + " got " + stripAnsi(line).length + ": " + stripAnsi(line),
+				`width ${width} got ${stripAnsi(line).length}: ${stripAnsi(line)}`,
 			);
 		}
 	}

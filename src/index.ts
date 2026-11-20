@@ -1,17 +1,17 @@
 import {
-	VERSION,
 	type ContextEvent,
 	type ExtensionAPI,
 	type ExtensionContext,
 	type InputEvent,
 	type InputEventResult,
 	type Theme,
+	VERSION,
 } from "@earendil-works/pi-coding-agent";
 
 import { startBinding } from "./binding.ts";
-import { SUPPORTED_PI_MAX_EXCLUSIVE, SUPPORTED_PI_MIN, isSupportedPiVersion } from "./compat.ts";
-import { createSkillAutocompleteProvider } from "./completion.ts";
 import { parsePiSkillsArgs, runPiSkillsCommand } from "./commands.ts";
+import { isSupportedPiVersion, SUPPORTED_PI_MAX_EXCLUSIVE, SUPPORTED_PI_MIN } from "./compat.ts";
+import { createSkillAutocompleteProvider } from "./completion.ts";
 import { createSkillCompletionEditorFactory } from "./editor.ts";
 import { injectSkills, type SkillSnapshot } from "./inject.ts";
 import { extractKnownSkillRefs } from "./parse.ts";
@@ -166,10 +166,7 @@ const bindPicker = (pi: ExtensionAPI, ctx: ExtensionContext): void => {
 			openPicker(ctx).catch((err) => handlePickerError(ctx, err));
 		},
 		onInert: () => {
-			ctx.ui?.notify?.(
-				"pi-skills: prefix-keybindings not detected, Ctrl+X k disabled",
-				"warning",
-			);
+			ctx.ui?.notify?.("pi-skills: prefix-keybindings not detected, Ctrl+X k disabled", "warning");
 		},
 	});
 };
@@ -207,9 +204,7 @@ const handleSessionStart = async (pi: ExtensionAPI, ctx: ExtensionContext): Prom
 	// Private-API reliance (editor shim) makes untested hosts unsafe; degrade
 	// loudly instead of risking a broken editor on an unvalidated Pi build.
 	if (!isSupportedPiVersion(VERSION)) {
-		unsupportedReason =
-			"pi-skills: Pi " + VERSION + " is unsupported (supported " +
-			SUPPORTED_PI_MIN + "..<" + SUPPORTED_PI_MAX_EXCLUSIVE + "); extension is inert";
+		unsupportedReason = `pi-skills: Pi ${VERSION} is unsupported (supported ${SUPPORTED_PI_MIN}..<${SUPPORTED_PI_MAX_EXCLUSIVE}); extension is inert`;
 		ctx.ui?.notify?.(unsupportedReason, "warning");
 		return;
 	}

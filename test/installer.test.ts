@@ -1,11 +1,10 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-
-import installPiSkills from "../index.ts";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import installPiSkills from "../index.ts";
 import { PI_SKILLS_WIDGET_KEY } from "../src/widget.ts";
 
 interface FakeUI {
@@ -53,7 +52,10 @@ type FakeCommand = { description?: string; handler: (a: string, ctx: ExtensionCo
 interface FakePi {
 	handlers: Map<string, InputHandler[]>;
 	commands: Map<string, FakeCommand>;
-	events: { emit(e: string, p?: unknown): void; on(e: string, h: (p?: unknown) => void): () => void };
+	events: {
+		emit(e: string, p?: unknown): void;
+		on(e: string, h: (p?: unknown) => void): () => void;
+	};
 	on(event: string, handler: InputHandler): void;
 	registerCommand(name: string, command: FakeCommand): void;
 }
@@ -74,7 +76,10 @@ function fakePi(): FakePi {
 				arr.push(handler);
 				listeners.set(event, arr);
 				return () => {
-					listeners.set(event, (listeners.get(event) ?? []).filter((h) => h !== handler));
+					listeners.set(
+						event,
+						(listeners.get(event) ?? []).filter((h) => h !== handler),
+					);
 				};
 			},
 		},
@@ -120,7 +125,11 @@ test("session_start registers the $-skill autocomplete provider when hasUI", asy
 	assert.equal(ui.editorFactories.length, 1, "must install the editor shim exactly once");
 	// The factory must stack `$` onto the base provider's trigger characters so
 	// the editor auto-triggers skill completion on `$`.
-	const base = { triggerCharacters: ["/", "@"], getSuggestions: async () => null, applyCompletion: () => null };
+	const base = {
+		triggerCharacters: ["/", "@"],
+		getSuggestions: async () => null,
+		applyCompletion: () => null,
+	};
 	const wrapped = ui.autocompleteFactories[0](base) as { triggerCharacters?: string[] };
 	assert.ok(wrapped.triggerCharacters?.includes("$"), "$ must be a trigger character");
 });
@@ -148,9 +157,21 @@ test("session_start wraps an existing editor component instead of replacing it",
 	const previousFactory = () => ({ previous: true });
 	const ui = fakeUI(previousFactory);
 	await emit(pi, "session_start", {}, fakeCtx(ui, true));
-	assert.equal(ui.editorFactories[0], previousFactory, "pre-existing editor factory remains recorded");
-	assert.equal(ui.editorFactories.length, 2, "pi-skills must install a wrapper factory after the previous one");
-	assert.notEqual(ui.editorFactories[1], previousFactory, "wrapper factory must not be the previous factory itself");
+	assert.equal(
+		ui.editorFactories[0],
+		previousFactory,
+		"pre-existing editor factory remains recorded",
+	);
+	assert.equal(
+		ui.editorFactories.length,
+		2,
+		"pi-skills must install a wrapper factory after the previous one",
+	);
+	assert.notEqual(
+		ui.editorFactories[1],
+		previousFactory,
+		"wrapper factory must not be the previous factory itself",
+	);
 });
 
 test("context with an empty queue passes messages through unchanged", async () => {
@@ -158,7 +179,12 @@ test("context with an empty queue passes messages through unchanged", async () =
 	installPiSkills(pi as unknown as ExtensionAPI);
 	const ui = fakeUI();
 	// No skills attached: the handler must not inject or notify.
-	const res = await emit(pi, "context", { messages: [{ role: "user", content: "hi" }] }, fakeCtx(ui));
+	const res = await emit(
+		pi,
+		"context",
+		{ messages: [{ role: "user", content: "hi" }] },
+		fakeCtx(ui),
+	);
 	assert.equal(res, undefined);
 	assert.equal(ui.notifications.length, 0);
 });
@@ -270,7 +296,12 @@ test("context injects queued skills before the user turn, drains, notifies, and 
 			ui.notifications.some((n) => /Attached injected-test/.test(n.message)),
 			"toggle must attach the discovered skill",
 		);
-		const res = (await emit(pi, "context", { messages: [{ role: "user", content: "hi" }] }, ctx)) as {
+		const res = (await emit(
+			pi,
+			"context",
+			{ messages: [{ role: "user", content: "hi" }] },
+			ctx,
+		)) as {
 			messages?: Array<{ role: string; content: string }>;
 		};
 		const messages = res.messages;
@@ -298,22 +329,36 @@ test("snapshot lifecycle: re-inject within a turn, cleared at turn_end (one-shot
 	const { pi, ui, ctx, cleanup } = await setupWithQueuedSkill();
 	try {
 		// First fire of the turn: resolve, drain, snapshot, inject, notify.
-		const first = (await emit(pi, "context", { messages: [{ role: "user", content: "hi" }] }, ctx)) as {
+		const first = (await emit(
+			pi,
+			"context",
+			{ messages: [{ role: "user", content: "hi" }] },
+			ctx,
+		)) as {
 			messages?: Array<{ role: string; content: string }>;
 		};
 		assert.ok(first.messages);
-		const notifiedAfterFirst = ui.notifications.filter((n) => /Injected 1 skill/.test(n.message)).length;
+		const notifiedAfterFirst = ui.notifications.filter((n) =>
+			/Injected 1 skill/.test(n.message),
+		).length;
 		assert.equal(notifiedAfterFirst, 1);
 
 		// Subsequent fire (tool-use sub-request): re-inject from the snapshot,
 		// with no new drain or notify.
-		const second = (await emit(pi, "context", { messages: [{ role: "user", content: "hi" }] }, ctx)) as {
+		const second = (await emit(
+			pi,
+			"context",
+			{ messages: [{ role: "user", content: "hi" }] },
+			ctx,
+		)) as {
 			messages?: Array<{ role: string; content: string }>;
 		};
 		const secondMessages = second.messages;
 		assert.ok(secondMessages, "subsequent fire must re-inject from the snapshot");
 		assert.match(secondMessages[0]?.content ?? "", /<skill name="injected-test"/);
-		const notifiedAfterSecond = ui.notifications.filter((n) => /Injected 1 skill/.test(n.message)).length;
+		const notifiedAfterSecond = ui.notifications.filter((n) =>
+			/Injected 1 skill/.test(n.message),
+		).length;
 		assert.equal(notifiedAfterSecond, 1, "subsequent fire must not re-notify");
 
 		// turn_end drops the snapshot; the next turn with an empty queue passes through.
@@ -328,12 +373,22 @@ test("snapshot lifecycle: re-inject within a turn, cleared at turn_end (one-shot
 test("snapshot lifecycle: session_start clears stale pending injection", async () => {
 	const { pi, ctx, cleanup } = await setupWithQueuedSkill();
 	try {
-		const first = (await emit(pi, "context", { messages: [{ role: "user", content: "hi" }] }, ctx)) as {
+		const first = (await emit(
+			pi,
+			"context",
+			{ messages: [{ role: "user", content: "hi" }] },
+			ctx,
+		)) as {
 			messages?: Array<{ role: string; content: string }>;
 		};
 		assert.ok(first.messages, "first context fire must inject");
 		await emit(pi, "session_start", {}, ctx);
-		const second = await emit(pi, "context", { messages: [{ role: "user", content: "next" }] }, ctx);
+		const second = await emit(
+			pi,
+			"context",
+			{ messages: [{ role: "user", content: "next" }] },
+			ctx,
+		);
 		assert.equal(second, undefined, "reload/session start must not leak stale pending skills");
 	} finally {
 		cleanup();
@@ -343,12 +398,22 @@ test("snapshot lifecycle: session_start clears stale pending injection", async (
 test("snapshot lifecycle: session_shutdown clears stale pending injection", async () => {
 	const { pi, ctx, cleanup } = await setupWithQueuedSkill();
 	try {
-		const first = (await emit(pi, "context", { messages: [{ role: "user", content: "hi" }] }, ctx)) as {
+		const first = (await emit(
+			pi,
+			"context",
+			{ messages: [{ role: "user", content: "hi" }] },
+			ctx,
+		)) as {
 			messages?: Array<{ role: string; content: string }>;
 		};
 		assert.ok(first.messages, "first context fire must inject");
 		await emit(pi, "session_shutdown", {}, ctx);
-		const second = await emit(pi, "context", { messages: [{ role: "user", content: "next" }] }, ctx);
+		const second = await emit(
+			pi,
+			"context",
+			{ messages: [{ role: "user", content: "next" }] },
+			ctx,
+		);
 		assert.equal(second, undefined, "shutdown must not leak stale pending skills");
 	} finally {
 		cleanup();
@@ -363,7 +428,12 @@ test("input handler strips known $refs, feeds the shared queue, and transforms t
 		const cmd = piSkillsCommand(pi);
 		await cmd.handler("clear", ctx); // hermetic: start from an empty queue
 
-		const res = (await emit(pi, "input", { text: "$concise explain this", source: "interactive" }, ctx)) as {
+		const res = (await emit(
+			pi,
+			"input",
+			{ text: "$concise explain this", source: "interactive" },
+			ctx,
+		)) as {
 			action: string;
 			text?: string;
 		};
@@ -381,7 +451,12 @@ test("input handler strips known $refs, feeds the shared queue, and transforms t
 test("input handler leaves unknown $NAME text literal", async () => {
 	const { pi, ctx, cleanup } = await setupWithDiscoveredSkill("concise");
 	try {
-		const res = (await emit(pi, "input", { text: "run echo $HOME", source: "interactive" }, ctx)) as {
+		const res = (await emit(
+			pi,
+			"input",
+			{ text: "run echo $HOME", source: "interactive" },
+			ctx,
+		)) as {
 			action: string;
 		};
 		assert.equal(res.action, "continue");
@@ -398,7 +473,12 @@ test("input handler passes prompts without $refs through unchanged", async () =>
 	const cmd = piSkillsCommand(pi);
 	await cmd.handler("clear", ctx);
 
-	const res = (await emit(pi, "input", { text: "just a normal prompt", source: "interactive" }, ctx)) as {
+	const res = (await emit(
+		pi,
+		"input",
+		{ text: "just a normal prompt", source: "interactive" },
+		ctx,
+	)) as {
 		action: string;
 	};
 	assert.equal(res.action, "continue");

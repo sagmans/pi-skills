@@ -107,10 +107,13 @@ test("factory falls back when the previous editor factory throws", () => {
 });
 
 test("forceAutocompleteIfAvailable fails closed on throwing reflection targets", () => {
-	const hostile = new Proxy({}, {
-		get() {
-			throw new Error("nope");
+	const hostile = new Proxy(
+		{},
+		{
+			get() {
+				throw new Error("nope");
+			},
 		},
-	});
+	);
 	assert.equal(forceAutocompleteIfAvailable(hostile), false);
 });

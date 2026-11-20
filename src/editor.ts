@@ -1,6 +1,6 @@
 import {
-	CustomEditor,
 	type AppKeybinding,
+	CustomEditor,
 	type ExtensionUIContext,
 	type KeybindingsManager,
 } from "@earendil-works/pi-coding-agent";
@@ -96,21 +96,21 @@ class SkillCompletionEditor extends CustomEditor {
 		// Best-effort mirroring: a throwing getter on an exotic prior editor must
 		// not take down rendering — skipping sync only loses cosmetic state.
 		try {
-		if (this.inner.actionHandlers instanceof Map) {
-			this.inner.actionHandlers.clear();
-			for (const [action, handler] of this.actionHandlers) {
-				this.inner.actionHandlers.set(action, handler);
+			if (this.inner.actionHandlers instanceof Map) {
+				this.inner.actionHandlers.clear();
+				for (const [action, handler] of this.actionHandlers) {
+					this.inner.actionHandlers.set(action, handler);
+				}
 			}
-		}
-		this.inner.borderColor = this.borderColor;
-		this.inner.disableSubmit = this.disableSubmit;
-		this.inner.focused = this.focused;
-		this.inner.onChange = this.onChange;
-		this.inner.onCtrlD = this.onCtrlD;
-		this.inner.onEscape = this.onEscape;
-		this.inner.onExtensionShortcut = this.onExtensionShortcut;
-		this.inner.onPasteImage = this.onPasteImage;
-		this.inner.onSubmit = this.onSubmit;
+			this.inner.borderColor = this.borderColor;
+			this.inner.disableSubmit = this.disableSubmit;
+			this.inner.focused = this.focused;
+			this.inner.onChange = this.onChange;
+			this.inner.onCtrlD = this.onCtrlD;
+			this.inner.onEscape = this.onEscape;
+			this.inner.onExtensionShortcut = this.onExtensionShortcut;
+			this.inner.onPasteImage = this.onPasteImage;
+			this.inner.onSubmit = this.onSubmit;
 		} catch {
 			// Deliberately silent; see comment at top of syncEditorState.
 		}

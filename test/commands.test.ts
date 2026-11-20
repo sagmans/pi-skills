@@ -36,9 +36,14 @@ test("parse: pick -> pick", () => {
 
 test("command pick opens the picker overlay", () => {
 	let opened = 0;
-	const out = runPiSkillsCommand(parsePiSkillsArgs("pick"), { queue: new SkillQueue(), index: fakeIndex(["a"]), autocompleteRegistered: true, openPicker: () => {
-		opened += 1;
-	} });
+	const out = runPiSkillsCommand(parsePiSkillsArgs("pick"), {
+		queue: new SkillQueue(),
+		index: fakeIndex(["a"]),
+		autocompleteRegistered: true,
+		openPicker: () => {
+			opened += 1;
+		},
+	});
 	assert.equal(opened, 1);
 	assert.equal(out.level, "info");
 	assert.match(out.message, /picker/i);
@@ -72,14 +77,24 @@ test("parse: toggle without name -> unknown", () => {
 });
 
 test("command list reports empty queue", () => {
-	const out = runPiSkillsCommand(parsePiSkillsArgs(""), { queue: new SkillQueue(), index: fakeIndex(["a"]), autocompleteRegistered: true, openPicker: () => {} });
+	const out = runPiSkillsCommand(parsePiSkillsArgs(""), {
+		queue: new SkillQueue(),
+		index: fakeIndex(["a"]),
+		autocompleteRegistered: true,
+		openPicker: () => {},
+	});
 	assert.equal(out.level, "info");
 	assert.match(out.message, /No skills attached/);
 });
 
 test("command clear empties the queue", () => {
 	const q = new SkillQueue(["a", "b"]);
-	const out = runPiSkillsCommand(parsePiSkillsArgs("clear"), { queue: q, index: fakeIndex(["a", "b"]), autocompleteRegistered: false, openPicker: () => {} });
+	const out = runPiSkillsCommand(parsePiSkillsArgs("clear"), {
+		queue: q,
+		index: fakeIndex(["a", "b"]),
+		autocompleteRegistered: false,
+		openPicker: () => {},
+	});
 	assert.equal(q.size, 0);
 	assert.match(out.message, /cleared/);
 });
@@ -87,16 +102,31 @@ test("command clear empties the queue", () => {
 test("command toggle attaches then detaches an existing skill", () => {
 	const q = new SkillQueue();
 	const index = fakeIndex(["concise"]);
-	const on = runPiSkillsCommand(parsePiSkillsArgs("concise"), { queue: q, index, autocompleteRegistered: false, openPicker: () => {} });
+	const on = runPiSkillsCommand(parsePiSkillsArgs("concise"), {
+		queue: q,
+		index,
+		autocompleteRegistered: false,
+		openPicker: () => {},
+	});
 	assert.equal(q.has("concise"), true);
 	assert.match(on.message, /Attached/);
-	const off = runPiSkillsCommand(parsePiSkillsArgs("concise"), { queue: q, index, autocompleteRegistered: false, openPicker: () => {} });
+	const off = runPiSkillsCommand(parsePiSkillsArgs("concise"), {
+		queue: q,
+		index,
+		autocompleteRegistered: false,
+		openPicker: () => {},
+	});
 	assert.equal(q.has("concise"), false);
 	assert.match(off.message, /Detached/);
 });
 
 test("command toggle warns on unknown skill", () => {
-	const out = runPiSkillsCommand(parsePiSkillsArgs("ghost"), { queue: new SkillQueue(), index: fakeIndex(["a"]), autocompleteRegistered: false, openPicker: () => {} });
+	const out = runPiSkillsCommand(parsePiSkillsArgs("ghost"), {
+		queue: new SkillQueue(),
+		index: fakeIndex(["a"]),
+		autocompleteRegistered: false,
+		openPicker: () => {},
+	});
 	assert.equal(out.level, "warning");
 	assert.match(out.message, /Unknown skill: ghost/);
 });
@@ -104,12 +134,22 @@ test("command toggle warns on unknown skill", () => {
 test("command status reports index/attached counts and registration state", () => {
 	const q = new SkillQueue(["concise"]);
 	const index = fakeIndex(["concise", "tdd"]);
-	const on = runPiSkillsCommand(parsePiSkillsArgs("status"), { queue: q, index, autocompleteRegistered: true, openPicker: () => {} });
+	const on = runPiSkillsCommand(parsePiSkillsArgs("status"), {
+		queue: q,
+		index,
+		autocompleteRegistered: true,
+		openPicker: () => {},
+	});
 	assert.equal(on.level, "info");
 	assert.match(on.message, /2 skills indexed, 1 attached/);
 	assert.match(on.message, /\$-completion on/);
 
-	const off = runPiSkillsCommand(parsePiSkillsArgs("status"), { queue: new SkillQueue(), index, autocompleteRegistered: false, openPicker: () => {} });
+	const off = runPiSkillsCommand(parsePiSkillsArgs("status"), {
+		queue: new SkillQueue(),
+		index,
+		autocompleteRegistered: false,
+		openPicker: () => {},
+	});
 	assert.equal(off.level, "warning");
 	assert.match(off.message, /\$-completion OFF/);
 });

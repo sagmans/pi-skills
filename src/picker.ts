@@ -1,11 +1,11 @@
-import { type Skill } from "@earendil-works/pi-coding-agent";
+import type { Skill } from "@earendil-works/pi-coding-agent";
 import {
+	type Component,
 	CURSOR_MARKER,
+	type Focusable,
 	fuzzyFilter,
 	matchesKey,
 	truncateToWidth,
-	type Component,
-	type Focusable,
 } from "@earendil-works/pi-tui";
 
 import { SkillQueue } from "./queue.ts";
@@ -149,11 +149,8 @@ const queryEditHandler = (kind: PickerKeyAction["kind"]): QueryEditHandler =>
 	QUERY_EDIT_HANDLERS.get(kind) ?? keepQueryState;
 
 /** Insert/replace at a cursor position; returns new value + new cursor. Pure. */
-const applyQueryEdit = (
-	query: string,
-	cursor: number,
-	action: QueryEditAction,
-): QueryEditState => queryEditHandler(action.kind)({ query, cursor }, action);
+const applyQueryEdit = (query: string, cursor: number, action: QueryEditAction): QueryEditState =>
+	queryEditHandler(action.kind)({ query, cursor }, action);
 
 export { applyQueryEdit as editQuery };
 
@@ -189,10 +186,15 @@ const isQueryEditAction = (action: PickerKeyAction): boolean =>
 const sameQueryState = (left: QueryEditState, right: QueryEditState): boolean =>
 	left.query === right.query && left.cursor === right.cursor;
 
-const pickerBorder = (theme: PickerTheme, left: string, innerWidth: number, right: string): string =>
-	theme.fg("border", `${left}${"─".repeat(innerWidth)}${right}`);
+const pickerBorder = (
+	theme: PickerTheme,
+	left: string,
+	innerWidth: number,
+	right: string,
+): string => theme.fg("border", `${left}${"─".repeat(innerWidth)}${right}`);
 
-const pickerRow = (theme: PickerTheme, innerWidth: number): PickerRowRenderer =>
+const pickerRow =
+	(theme: PickerTheme, innerWidth: number): PickerRowRenderer =>
 	(content) =>
 		`${theme.fg("border", "│")}${truncateToWidth(content, innerWidth, DEFAULT_TRUNCATION_ELLIPSIS, true)}${theme.fg("border", "│")}`;
 

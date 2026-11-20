@@ -30,8 +30,7 @@ export interface SkillQuery {
  * and the column of the leading `$`. Otherwise null. Pure so the provider's
  * trigger/apply logic is unit-testable without the editor runtime.
  */
-const isAsciiLetter = (ch: string): boolean =>
-	(ch >= "A" && ch <= "Z") || (ch >= "a" && ch <= "z");
+const isAsciiLetter = (ch: string): boolean => (ch >= "A" && ch <= "Z") || (ch >= "a" && ch <= "z");
 
 const isSkillQueryChar = (ch: string): boolean =>
 	isAsciiLetter(ch) || (ch >= "0" && ch <= "9") || ch === "_" || ch === "-";
@@ -134,7 +133,7 @@ class SkillAutocompleteProvider implements AutocompleteProvider {
  * base provider. `getIndex` is a getter so the provider always sees the freshly
  * reloaded skill index (session_start reassigns it on every session).
  */
-export const createSkillAutocompleteProvider = (
-	getIndex: () => SkillIndex,
-): AutocompleteProviderFactory =>
-	(current) => new SkillAutocompleteProvider(current, getIndex);
+export const createSkillAutocompleteProvider =
+	(getIndex: () => SkillIndex): AutocompleteProviderFactory =>
+	(current) =>
+		new SkillAutocompleteProvider(current, getIndex);

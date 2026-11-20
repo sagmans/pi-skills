@@ -39,7 +39,10 @@ interface CommandParseContext {
 
 type CommandParser = (ctx: CommandParseContext) => ParsedCommand;
 
-const literalCommand = (command: ParsedCommand): CommandParser => () => command;
+const literalCommand =
+	(command: ParsedCommand): CommandParser =>
+	() =>
+		command;
 
 const parseToggleArgs: CommandParser = ({ args, second }) =>
 	second ? { kind: "toggle", name: second } : { kind: "unknown", value: args };

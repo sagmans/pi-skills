@@ -1,0 +1,48 @@
+// Biome is the formatter and linter for this repository. The pre-commit hook
+// checks staged files; the pre-push hook runs `npm run lint` (biome ci).
+{
+  "$schema": "https://biomejs.dev/schemas/2.6.6/schema.json",
+  "files": {
+    // Non-JS/TS/JSON files (shell scripts, LICENSE, .npmrc) are owned by other linters.
+    "ignoreUnknown": true,
+    // The copied hook template stays byte-identical to its source.
+    "includes": ["**", "!.githooks"]
+  },
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "formatter": {
+    "enabled": true,
+    // Lock in the repository's existing tab indentation and 100-column width.
+    "indentStyle": "tab",
+    "lineWidth": 100
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "recommended"
+    }
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "double",
+      "semicolons": "always",
+      "trailingCommas": "all"
+    }
+  },
+  "json": {
+    "formatter": {
+      // Keep package.json and tsconfig.json aligned with npm's two-space output.
+      "indentStyle": "space",
+      "indentWidth": 2
+    }
+  },
+  "markdown": {
+    "formatter": {
+      // Markdown keeps its hand-aligned tables; markdownlint owns Markdown style.
+      "enabled": false
+    }
+  }
+}
